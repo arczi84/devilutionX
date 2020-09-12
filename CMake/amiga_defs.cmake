@@ -1,6 +1,6 @@
 set(ASAN OFF)
 set(UBSAN OFF)
-set(NONET ON)
+set(NONET OFF)
 set(USE_SDL1 ON)
 set(SDL1_VIDEO_MODE_BPP 8)
 set(TTF_FONT_NAME \"LiberationSerif-Bold.ttf\")

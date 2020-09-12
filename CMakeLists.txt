@@ -52,7 +52,7 @@ if(VERSION_NUM MATCHES untagged)
 else()
   project(DevilutionX
     VERSION ${VERSION_NUM}
-    LANGUAGES C CXX)
+    LANGUAGES C CXX  ASM)
 endif()
 
 # Not a genexp because CMake doesn't support it
@@ -315,6 +315,13 @@ if(SWITCH)
     SourceX/platform/switch/keyboard.cpp
     SourceX/platform/switch/docking.cpp)
   set(BIN_TARGET devilutionx.elf)
+endif()
+
+if(AMIGA)
+  list(APPEND devilutionx_SRCS
+    SourceX/platform/amiga/render68k.asm
+	SourceX/platform/amiga/memopt.asm
+	SourceX/platform/amiga/ac68080_support.c)
 endif()
 
 if(RUN_TESTS)

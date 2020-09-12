@@ -177,6 +177,16 @@ inline static void RenderLine(BYTE **dst, BYTE **src, int n, BYTE *tbl, DWORD ma
 	}
 }
 
+#ifdef __AMIGA__
+extern "C" {
+	void RenderTile_RT_SQUARE(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+	void RenderTile_RT_TRANSPARENT(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+	void RenderTile_RT_LTRIANGLE(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+	void RenderTile_RT_RTRIANGLE(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+	void RenderTile_RT_LTRAPEZOID(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+	void RenderTile_RT_RTRAPEZOID(BYTE *dst, BYTE *src, BYTE *tbl, DWORD *mask);
+}
+#endif
 #if defined(__clang__) || defined(__GNUC__)
 __attribute__((no_sanitize("shift-base")))
 #endif
@@ -236,11 +246,18 @@ void RenderTile(BYTE *pBuff)
 
 	switch (tile) {
 	case RT_SQUARE:
+#if defined(__AMIGA__)
+		RenderTile_RT_SQUARE(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT; i != 0; i--, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			RenderLine(&dst, &src, TILE_WIDTH / 2, tbl, *mask);
 		}
+#endif
 		break;
 	case RT_TRANSPARENT:
+#if defined(__AMIGA__)
+		RenderTile_RT_TRANSPARENT(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT; i != 0; i--, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			m = *mask;
 			for (j = TILE_WIDTH / 2; j != 0; j -= v, v == TILE_WIDTH / 2 ? m = 0 : m <<= v) {
@@ -253,8 +270,12 @@ void RenderTile(BYTE *pBuff)
 				}
 			}
 		}
+#endif
 		break;
 	case RT_LTRIANGLE:
+#if defined(__AMIGA__)
+		RenderTile_RT_LTRIANGLE(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT - 2; i >= 0; i -= 2, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			src += i & 2;
 			dst += i;
@@ -265,8 +286,12 @@ void RenderTile(BYTE *pBuff)
 			dst += i;
 			RenderLine(&dst, &src, TILE_WIDTH / 2 - i, tbl, *mask);
 		}
+#endif
 		break;
 	case RT_RTRIANGLE:
+#if defined(__AMIGA__)
+		RenderTile_RT_RTRIANGLE(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT - 2; i >= 0; i -= 2, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			RenderLine(&dst, &src, TILE_WIDTH / 2 - i, tbl, *mask);
 			src += i & 2;
@@ -277,8 +302,12 @@ void RenderTile(BYTE *pBuff)
 			src += i & 2;
 			dst += i;
 		}
+#endif
 		break;
 	case RT_LTRAPEZOID:
+#if defined(__AMIGA__)
+		RenderTile_RT_LTRAPEZOID(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT - 2; i >= 0; i -= 2, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			src += i & 2;
 			dst += i;
@@ -287,8 +316,12 @@ void RenderTile(BYTE *pBuff)
 		for (i = TILE_HEIGHT / 2; i != 0; i--, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			RenderLine(&dst, &src, TILE_WIDTH / 2, tbl, *mask);
 		}
+#endif
 		break;
 	case RT_RTRAPEZOID:
+#if defined(__AMIGA__)
+		RenderTile_RT_RTRAPEZOID(dst,src,tbl,mask);
+#else
 		for (i = TILE_HEIGHT - 2; i >= 0; i -= 2, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			RenderLine(&dst, &src, TILE_WIDTH / 2 - i, tbl, *mask);
 			src += i & 2;
@@ -297,6 +330,7 @@ void RenderTile(BYTE *pBuff)
 		for (i = TILE_HEIGHT / 2; i != 0; i--, dst -= BUFFER_WIDTH + TILE_WIDTH / 2, mask--) {
 			RenderLine(&dst, &src, TILE_WIDTH / 2, tbl, *mask);
 		}
+#endif
 		break;
 	}
 }

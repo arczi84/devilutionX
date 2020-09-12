@@ -14,6 +14,18 @@
 #define SDLC_KEYSTATE_LEFT SDL_SCANCODE_LEFT
 #define SDLC_KEYSTATE_RIGHT SDL_SCANCODE_RIGHT
 #else
+#if defined(__AMIGA__) // Add other systems that require an 8bit screen here
+extern "C"
+{
+	extern char ac68080_saga;
+	extern char ac68080_ammx;
+	extern char aros_is_here;
+	extern int  vampire_Flip(SDL_Surface *surf);	
+	extern int  vampire_BlitSurface(SDL_Surface *src, SDL_Rect *srcRect,
+						     SDL_Surface *dst, SDL_Rect *dstRect);
+	extern SDL_Surface *vampire_MakeTripleBuffer(SDL_Surface *surf);
+} //extern C
+#endif
 #define SDLC_KEYSTATE_LEFTCTRL SDLK_LCTRL
 #define SDLC_KEYSTATE_RIGHTCTRL SDLK_RCTRL
 #define SDLC_KEYSTATE_LEFTSHIFT SDLK_LSHIFT

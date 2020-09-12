@@ -864,9 +864,14 @@ static char smk_render_video(struct smk_video_t* s, unsigned char* p, unsigned i
 	long unpack;
 
 	/* unpack, broken into pieces */
-	unsigned char type;
-	unsigned char blocklen;
-	unsigned char typedata;
+#ifdef __mc68000__
+	unsigned long
+#else
+	unsigned char
+#endif
+			type,
+			blocklen,
+			typedata;
 	char bit;
 
 	const unsigned short sizetable[64] = {
@@ -901,9 +906,15 @@ static char smk_render_video(struct smk_video_t* s, unsigned char* p, unsigned i
 	{
 		smk_huff16_lookup(bs,s->tree[SMK_TREE_TYPE],unpack);
 
+#ifdef __mc68000__
+		type = (unpack & 0x0003);
+		blocklen = ((unpack & 0x00FF) >> 2);
+		typedata = ((unpack>>8)&255)*0x1010101;
+#else
 		type = ((unpack & 0x0003));
 		blocklen = ((unpack & 0x00FC) >> 2);
 		typedata = ((unpack & 0xFF00) >> 8);
+#endif
 
 		/* support for v4 full-blocks */
 		if (type == 1 && s->v == '4')
@@ -977,6 +988,12 @@ static char smk_render_video(struct smk_video_t* s, unsigned char* p, unsigned i
 					} */
 					break;
 				case 3: /* SOLID BLOCK */
+#ifdef __mc68000__
+					*(int*)&t[skip] = typedata; skip += s->w;
+					*(int*)&t[skip] = typedata; skip += s->w;
+					*(int*)&t[skip] = typedata; skip += s->w;
+					*(int*)&t[skip] = typedata;
+#else
 					memset(&t[skip],typedata,4);
 					skip += s->w;
 					memset(&t[skip],typedata,4);
@@ -984,6 +1001,7 @@ static char smk_render_video(struct smk_video_t* s, unsigned char* p, unsigned i
 					memset(&t[skip],typedata,4);
 					skip += s->w;
 					memset(&t[skip],typedata,4);
+#endif
 					break;
 				case 4: /* V4 DOUBLE BLOCK */
 					for (k = 0; k < 2; k ++)

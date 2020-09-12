@@ -919,8 +919,12 @@ void Cl2Draw(int sx, int sy, BYTE *pCelBuff, int nCel, int nWidth)
 	    nWidth);
 }
 
-/**
- * @brief Blit CL2 sprite to the given buffer
+#if defined(__AMIGA__)
+extern "C" {
+	extern void Cl2BlitSafe_68k(BYTE *pDecodeTo, BYTE *pRLEBytes, int nDataSiz, int nWidth);
+}
+#endif
+/*
  * @param pDecodeTo The output buffer
  * @param pRLEBytes CL2 pixel stream (run-length encoded)
  * @param nDataSize Size of CL2 in bytes
@@ -932,6 +936,12 @@ void Cl2BlitSafe(BYTE *pDecodeTo, BYTE *pRLEBytes, int nDataSize, int nWidth)
 	char width;
 	BYTE fill;
 	BYTE *src, *dst;
+#if defined(__AMIGA__)
+{
+	Cl2BlitSafe_68k(pDecodeTo, pRLEBytes, nDataSize, nWidth);
+	return;
+}
+#endif
 
 	src = pRLEBytes;
 	dst = pDecodeTo;

@@ -99,6 +99,9 @@ void ClearCursor() // CODE_FIX: this was supposed to be in cursor.cpp
 	sgdwCursWdtOld = 0;
 }
 
+#ifdef __AMIGA__
+#define static static __attribute__((regparm(2)))
+#endif
 /**
  * @brief Remove the cursor from the back buffer
  */
@@ -1408,11 +1411,21 @@ void scrollrt_draw_game_screen(BOOL draw_cursor)
 
 	DrawMain(hgt, FALSE, FALSE, FALSE, FALSE, FALSE);
 
+#ifdef __AMIGA__
+	if(ac68080_saga) {
+		RenderPresent(); // forces flip before cursor restore display when in saga mode
+	}
+#endif
+
 	if (draw_cursor) {
 		lock_buf(0);
 		scrollrt_draw_cursor_back_buffer();
 		unlock_buf(0);
 	}
+
+#ifdef __AMIGA__
+	if(!ac68080_saga)
+#endif
 	RenderPresent();
 }
 
@@ -1473,9 +1486,17 @@ void DrawAndBlit()
 
 	DrawMain(hgt, ddsdesc, drawhpflag, drawmanaflag, drawsbarflag, drawbtnflag);
 
+#ifdef __AMIGA__
+	if(ac68080_saga) {
+		RenderPresent(); // forces flip before cursor restore display when in saga mode
+	}
+#endif
 	lock_buf(0);
 	scrollrt_draw_cursor_back_buffer();
 	unlock_buf(0);
+#ifdef __AMIGA__
+	if(!ac68080_saga)
+#endif
 	RenderPresent();
 
 	drawhpflag = FALSE;
