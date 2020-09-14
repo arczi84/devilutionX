@@ -100,6 +100,32 @@ error:
 	Return -1 on error. */
 short _smk_huff8_lookup(struct smk_bit_t* bs, const struct smk_huff8_t* t)
 {
+#ifdef __mc68000__
+	if(t->b0) {
+		__asm__ __volatile__ (
+#if !USE_REGPARM
+		"	move.l	%2,-(sp)	\n"
+#else
+		"	move.l	%2,a0		\n"
+#endif
+		".L0%=:					\n"
+		"	jsr		%3			\n"
+		"	tst.b	d0			\n"
+		"	beq.b	.L1%=		\n"
+		"	addq.l	#4,%0		\n"
+	".L1%=:					\n"
+		"	move.l	(%0),%0		\n"
+		"	tst.l	(%0)		\n"
+		"	bne.b	.L0%=		\n"
+#if !USE_REGPARM
+		"	addq.l	#4,sp		\n"
+#endif
+			: "=&a" (t) 
+		: "0" (t), "am" (bs), "m" (_smk_bs_read_1) 
+		: "d0","d1","a0","a1");
+	}
+	return t->u.leaf.value;
+#else
 	char bit;
 
 	/* sanity check */
@@ -126,6 +152,7 @@ short _smk_huff8_lookup(struct smk_bit_t* bs, const struct smk_huff8_t* t)
 
 error:
 	return -1;
+#endif
 }
 
 /**
@@ -331,8 +358,80 @@ error:
 	return NULL;
 }
 
-static int _smk_huff16_lookup_rec(struct smk_bit_t* bs, unsigned short cache[3], const struct smk_huff8_t* t)
+static inline
+int _smk_huff16_lookup_rec(struct smk_bit_t* bs, unsigned short cache[3], const struct smk_huff8_t* t)
 {
+#ifdef __mc68000__
+	register struct smk_huff8_t *t_ asm("a2") = t;
+	if(t_->b0) {
+		__asm__ __volatile__ (
+#if !USE_REGPARM
+		"	move.l	%2,-(sp)	\n"
+#else
+		"	move.l	%2,a0		\n"
+#endif
+		".L0%=:					\n"
+		"	bsr		%3			\n"
+		"	tst.b	d0			\n"
+		"	beq.b	.L1%=		\n"
+		"	addq.l	#4,a2		\n"
+		".L1%=:					\n"
+		"	move.l	(a2),a2		\n"
+		"	tst.l	(a2)		\n"
+		"	bne.b	.L0%=		\n"
+#if !USE_REGPARM
+		"	addq.l	#4,sp		\n"
+#endif
+		: "=&a" (t_) 
+		: "0" (t_), "am" (bs), "m" (_smk_bs_read_1) 
+		: "d0","d1","a0","a1");
+	}
+	{
+		register unsigned long val      asm("d0");
+		register unsigned short *cache_ asm("a1") = cache;
+		__asm__ __volatile__ (
+		"	moveq	#1,d0				\n"
+		"	add.b	(6,a2),d0			\n"
+		"	addq.l	#4,a2				\n"
+		"	beq.b	.L1%=				\n"
+		"	lea		-2(a1,d0.w*2),a2	\n"
+		".L1%=:							\n"
+		"	move.w	(a2),d0				\n"
+		"	cmp.w	(a1),d0				\n"
+		"	beq.b	.L2%=				\n"
+		"	move.l	(a1),2(a1)			\n"
+		"	move.w	d0,(a1)				\n"
+		".L2%=:							\n"
+		: "=d" (val), "=&a" (cache_), "=&a" (t_)
+		: "1"  (cache_), "2" (t_)
+		: "d1");
+		return val;
+	}
+#elif 0
+	unsigned short val;
+	char bit;
+	while(t->b0) {
+		smk_bs_read_1(bs, bit);
+		t = bit ? t->u.b1 : t->b0;
+	}
+	if (t->u.leaf.escapecode != 0xFF)
+	{
+		val = cache[t->u.leaf.escapecode];
+	}
+	else
+	{
+		val = t->u.leaf.value;
+	}
+	if (cache[0] != val)
+	{
+		cache[2] = cache[1];
+		cache[1] = cache[0];
+		cache[0] = val;
+	}
+	return val;
+error:
+	return -1;
+#else
 	unsigned short val;
 	char bit;
 
@@ -380,6 +479,7 @@ static int _smk_huff16_lookup_rec(struct smk_bit_t* bs, unsigned short cache[3],
 
 error:
 	return -1;
+#endif
 }
 
 /* Convenience call-out for recursive bigtree lookup function */

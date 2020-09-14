@@ -28,6 +28,11 @@ static char CopyrightPkware[] = "PKWARE Data Compression Library for Win32\r\n"
                                 "PKWARE Data Compression Library Reg. U.S. Pat. and Tm. Off.\r\n"
                                 "Version 1.11\r\n";
 
+#ifdef __AMIGA__
+// pass values in d0/d1 regs for speedup
+#define static static __attribute__ ((regparam(2)))
+#endif
+
 //-----------------------------------------------------------------------------
 // Tables
 
@@ -229,7 +234,36 @@ static void PKWAREAPI GenAscTabs(TDcmpStruct * pWork)
 
 static int PKWAREAPI WasteBits(TDcmpStruct * pWork, unsigned int nBits)
 {
+#ifdef __mc68000__
+	unsigned int m; int t = pWork->extra_bits;
     // If number of bits required is less than number of (bits in the buffer) ?
+    if((t -= nBits)<0) {
+		const TDcmpStruct *zero = 0; 
+		m = 1; // should be 0 but causes a gcc bug
+	    pWork->extra_bits = (t+=8); t += nBits;
+		if(pWork->in_pos == pWork->in_bytes)
+		{
+			pWork->in_pos = sizeof(pWork->in_buff);
+			if((pWork->in_bytes = pWork->read_buf(pWork->in_buff, &pWork->in_pos, pWork->param)) == 0)
+				return PKDCL_STREAM_END;
+			pWork->in_pos = 0;
+		} 
+		__asm__ __volatile__ (
+		"	move.b	(%5,%4,%1.l),%0	\n"
+		"   addq.l	#1,%1			\n"
+		"	lsl.l	%2,%0			\n"
+		"	or.l	%3,%0			\n"
+		: "+d" (m), "+r" (pWork->in_pos)
+		: "d" (t), "m" (pWork->bit_buff), 
+		  "a" (pWork), "m" (zero->in_buff) );
+	} else {
+		pWork->extra_bits = t;
+		m = pWork->bit_buff;
+	}
+end:
+	pWork->bit_buff = m >> nBits;
+    return PKDCL_OK;
+#else
     if(nBits <= pWork->extra_bits)
     {
         pWork->extra_bits -= nBits;
@@ -252,6 +286,7 @@ static int PKWAREAPI WasteBits(TDcmpStruct * pWork, unsigned int nBits)
     pWork->bit_buff >>= (nBits - pWork->extra_bits);
     pWork->extra_bits = (pWork->extra_bits - nBits) + 8;
     return PKDCL_OK;
+#endif
 }
 
 //-----------------------------------------------------------------------------
